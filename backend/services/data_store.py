@@ -1,6 +1,10 @@
 import json
+import os
 from datetime import date, timedelta
 from pathlib import Path
+
+import psycopg2
+import psycopg2.extras
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -48,23 +52,37 @@ def get_consultations_by_employee(employee_id, exclude_ids=None):
     return sorted(rows, key=lambda c: c["date"], reverse=True)
 
 
-REGISTERED_FAQ_PATH = DATA_DIR / "registered_faqs.json"
+def _db_connect():
+    return psycopg2.connect(os.environ["DATABASE_URL"], cursor_factory=psycopg2.extras.RealDictCursor)
 
 
 def get_registered_faqs():
-    if not REGISTERED_FAQ_PATH.exists():
-        return []
-    with open(REGISTERED_FAQ_PATH, "r", encoding="utf-8") as f:
-        return json.load(f)
+    conn = _db_connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM registered_faqs ORDER BY id DESC")
+            return cur.fetchall()
+    finally:
+        conn.close()
 
 
 def append_registered_faq(entry: dict) -> dict:
-    faqs = get_registered_faqs()
-    entry = {**entry, "id": (faqs[-1]["id"] + 1 if faqs else 1)}
-    faqs.append(entry)
-    with open(REGISTERED_FAQ_PATH, "w", encoding="utf-8") as f:
-        json.dump(faqs, f, ensure_ascii=False, indent=2)
-    return entry
+    conn = _db_connect()
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO registered_faqs (category, topic, question, answer)
+                VALUES (%(category)s, %(topic)s, %(question)s, %(answer)s)
+                RETURNING *
+                """,
+                entry,
+            )
+            saved = cur.fetchone()
+        conn.commit()
+        return saved
+    finally:
+        conn.close()
 
 
 def parse_period_days(period: str) -> int:
