@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchFaqDraft, registerFaq } from '../api/client'
 import type { FaqCandidate, FaqDraftResponse } from '../types'
 import AiLoading from './AiLoading'
+import IconBadge from './IconBadge'
 
 export default function FaqDraftModal({
   candidate,
@@ -54,9 +55,12 @@ export default function FaqDraftModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-bold text-slate-800">FAQ 초안</h3>
+          <h3 className="flex items-center gap-2.5 text-base font-bold text-slate-800">
+            <IconBadge emoji="📝" color="pink" size="sm" />
+            FAQ 초안
+          </h3>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="닫기">
             ✕
           </button>
@@ -68,11 +72,12 @@ export default function FaqDraftModal({
         {status === 'done' && data && (
           <div className="space-y-4 text-sm">
             {registerState === 'done' ? (
-              <div className="rounded-xl bg-brand-50 px-4 py-6 text-center">
-                <p className="text-sm font-semibold text-brand-700">FAQ로 등록되었습니다.</p>
+              <div className="rounded-2xl bg-brand-50 px-4 py-6 text-center">
+                <p className="text-2xl">🎉</p>
+                <p className="mt-1 text-sm font-semibold text-brand-700">FAQ로 등록되었습니다.</p>
                 <button
                   onClick={onClose}
-                  className="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600"
+                  className="mt-4 rounded-full bg-brand-500 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600"
                 >
                   닫기
                 </button>
@@ -87,7 +92,7 @@ export default function FaqDraftModal({
                     id="faq-question"
                     value={question}
                     onChange={(e) => setQuestion(e.target.value)}
-                    className="w-full rounded-xl bg-brand-50 px-3 py-2.5 font-medium text-slate-800 outline-none focus:ring-2 focus:ring-brand-300"
+                    className="w-full rounded-2xl bg-brand-50 px-3 py-2.5 font-medium text-slate-800 outline-none focus:ring-2 focus:ring-brand-300"
                   />
                 </div>
                 <div>
@@ -99,11 +104,11 @@ export default function FaqDraftModal({
                     value={answer}
                     onChange={(e) => setAnswer(e.target.value)}
                     rows={5}
-                    className="w-full resize-none rounded-xl border border-slate-200 px-3 py-2.5 leading-relaxed text-slate-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                    className="w-full resize-none rounded-2xl border border-slate-200 px-3 py-2.5 leading-relaxed text-slate-700 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
                   />
                 </div>
 
-                <div className="flex gap-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
+                <div className="flex gap-4 rounded-2xl bg-slate-50 px-3 py-2.5 text-xs text-slate-600">
                   <span>참고 상담 총 <b className="text-slate-800">{data.referenceCount}건</b></span>
                   <span>최근 상담 <b className="text-slate-800">{data.recentCount}건</b></span>
                   <span>담당자 답변 <b className="text-slate-800">{data.answeredCount}건</b> 존재</span>
@@ -116,14 +121,14 @@ export default function FaqDraftModal({
                 <div className="flex justify-end gap-2 pt-1">
                   <button
                     onClick={onClose}
-                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50"
+                    className="rounded-full border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-500 hover:bg-slate-50"
                   >
                     닫기
                   </button>
                   <button
                     onClick={handleRegister}
                     disabled={!question.trim() || !answer.trim() || registerState === 'saving'}
-                    className="rounded-lg bg-brand-500 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-600 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="rounded-full bg-brand-500 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {registerState === 'saving' ? '등록 중...' : '등록하기'}
                   </button>

@@ -35,7 +35,7 @@ export default function FaqInsightPage() {
       </header>
 
       {status === 'loading' && (
-        <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-400">
+        <div className="rounded-3xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-400 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
           상담 데이터를 분석하고 있습니다...
         </div>
       )}
@@ -44,23 +44,23 @@ export default function FaqInsightPage() {
       {status === 'done' && data && (
         <>
           <div className="flex flex-col gap-4 sm:flex-row">
-            <StatCard label="총 문의" value={data.totalConsultations} suffix="건" />
-            <StatCard label="반복 문의" value={data.repeatedConsultations} suffix="건" />
-            <StatCard label="FAQ 후보" value={data.faqCandidateCount} suffix="건" accent />
+            <StatCard label="총 문의" value={data.totalConsultations} suffix="건" emoji="💬" color="blue" />
+            <StatCard label="반복 문의" value={data.repeatedConsultations} suffix="건" emoji="🔁" color="purple" />
+            <StatCard label="FAQ 후보" value={data.faqCandidateCount} suffix="건" emoji="⭐" color="orange" accent />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
             <h2 className="mb-4 text-sm font-bold text-slate-700">문의 유형 분석</h2>
             <CategoryBarChart data={data.categoryDistribution} />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
             <h2 className="mb-4 text-sm font-bold text-slate-700">AI FAQ 추천</h2>
             <ul className="divide-y divide-slate-100">
               {data.faqCandidates.map((c, i) => (
                 <li key={c.title} className="flex items-center justify-between gap-4 py-3">
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
                       {i + 1}
                     </span>
                     <div>
@@ -72,7 +72,7 @@ export default function FaqInsightPage() {
                     <span className="text-sm font-bold text-slate-700">{c.count}건</span>
                     <button
                       onClick={() => setSelected(c)}
-                      className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-600"
+                      className="rounded-full bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
                     >
                       FAQ 초안 생성
                     </button>

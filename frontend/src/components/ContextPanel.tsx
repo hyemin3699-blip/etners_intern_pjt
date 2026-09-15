@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { fetchContext } from '../api/client'
 import type { ContextResponse } from '../types'
 import AiLoading from './AiLoading'
+import IconBadge from './IconBadge'
 
 export default function ContextPanel({
   employeeId,
@@ -28,15 +29,16 @@ export default function ContextPanel({
   }
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-base font-bold text-slate-800">
-          <span className="text-brand-500">🧭</span> AI 문의 Context
+        <h2 className="flex items-center gap-2.5 text-base font-bold text-slate-800">
+          <IconBadge emoji="🧭" color="blue" />
+          AI 문의 Context
         </h2>
         <button
           onClick={handleAnalyze}
           disabled={status === 'loading'}
-          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-brand-600 disabled:opacity-50"
+          className="rounded-full bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500 disabled:opacity-50"
         >
           {status === 'done' ? '다시 분석' : 'AI 분석'}
         </button>

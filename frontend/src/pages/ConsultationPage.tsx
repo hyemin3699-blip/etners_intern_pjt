@@ -45,13 +45,13 @@ export default function ConsultationPage() {
       />
 
       {!selected ? (
-        <section className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white/60 p-10 text-sm text-slate-400 lg:col-span-2">
+        <section className="flex items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white/60 p-10 text-sm text-slate-400 lg:col-span-2">
           왼쪽 목록에서 처리할 상담을 선택하세요.
         </section>
       ) : (
         <>
           {/* 상담 내용 */}
-          <section className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <section className="flex flex-col rounded-3xl border border-slate-100 bg-white shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
             <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
                 <h2 className="text-base font-bold text-slate-800">{selected.name}</h2>
@@ -90,11 +90,11 @@ export default function ConsultationPage() {
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && sendReply()}
                 placeholder="고객에게 보낼 답변을 입력하세요"
-                className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400"
+                className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               />
               <button
                 onClick={sendReply}
-                className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
+                className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
               >
                 전송
               </button>
