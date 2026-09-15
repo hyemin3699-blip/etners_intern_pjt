@@ -1,3 +1,10 @@
+import os
+import sys
+
+# Vercel 서버리스 환경에서는 backend/ 디렉터리가 sys.path에 자동으로 포함되지 않아
+# routes/services 패키지를 찾지 못하므로 명시적으로 추가한다.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from dotenv import load_dotenv
 
 load_dotenv()
