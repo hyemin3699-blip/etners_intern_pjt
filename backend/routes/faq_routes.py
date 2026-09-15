@@ -49,7 +49,8 @@ def _period_label(period: str) -> str:
 def faq_analysis():
     body = request.get_json(force=True) or {}
     period = _period_arg(body)
-    rows = data_store.get_consultations_within(period)
+    company = body.get("company")
+    rows = data_store.get_consultations_within(period, company)
 
     total = len(rows)
 
@@ -109,11 +110,12 @@ def faq_draft():
     category = body.get("category")
     topic = body.get("title") or body.get("topic")
     period = _period_arg(body)
+    company = body.get("company")
 
     if not topic:
         return jsonify({"error": "topic(title)은 필수입니다."}), 400
 
-    rows = data_store.get_consultations_within(period)
+    rows = data_store.get_consultations_within(period, company)
     matched = [c for c in rows if c["topic"] == topic and (category is None or c["category"] == category)]
 
     if not matched:
@@ -148,6 +150,8 @@ def faq_draft():
 @bp.route("/api/faq/register", methods=["POST"])
 def faq_register():
     body = request.get_json(force=True) or {}
+    scope = body.get("scope", "company")
+    company = body.get("company")
     category = body.get("category", "")
     topic = body.get("topic", "")
     question = (body.get("question") or "").strip()
@@ -155,11 +159,31 @@ def faq_register():
 
     if not question or not answer:
         return jsonify({"error": "question과 answer는 필수입니다."}), 400
+    if scope == "company" and not company:
+        return jsonify({"error": "고객사 FAQ는 company가 필수입니다."}), 400
 
     entry = data_store.append_registered_faq({
+        "company": company if scope == "company" else None,
         "category": category,
         "topic": topic,
         "question": question,
         "answer": answer,
     })
     return jsonify(entry)
+
+
+@bp.route("/api/faq/registered", methods=["GET"])
+def list_registered_faqs():
+    scope = request.args.get("scope")
+    company = request.args.get("company")
+    if scope == "company" and not company:
+        return jsonify({"error": "scope=company일 때는 company가 필수입니다."}), 400
+    return jsonify(data_store.get_registered_faqs(scope, company))
+
+
+@bp.route("/api/faq/registered/<int:faq_id>", methods=["DELETE"])
+def delete_registered_faq_route(faq_id):
+    ok = data_store.delete_registered_faq(faq_id)
+    if not ok:
+        return jsonify({"error": "not found"}), 404
+    return jsonify({"deleted": faq_id})

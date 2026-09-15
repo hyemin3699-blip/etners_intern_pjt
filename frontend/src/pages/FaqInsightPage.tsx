@@ -1,22 +1,26 @@
 import { useEffect, useState } from 'react'
 import { fetchFaqAnalysis } from '../api/client'
-import CategoryBarChart from '../components/CategoryBarChart'
+import CompanySelector from '../components/CompanySelector'
 import FaqDraftModal from '../components/FaqDraftModal'
+import KeywordBubbleChart from '../components/KeywordBubbleChart'
 import StatCard from '../components/StatCard'
+import { useCompany } from '../context/CompanyContext'
 import type { FaqAnalysisResponse, FaqCandidate } from '../types'
 
 const PERIOD = '30days'
 const PERIOD_LABEL = '최근 30일'
 
 export default function FaqInsightPage() {
+  const { company } = useCompany()
   const [status, setStatus] = useState<'loading' | 'done' | 'error'>('loading')
   const [data, setData] = useState<FaqAnalysisResponse | null>(null)
   const [selected, setSelected] = useState<FaqCandidate | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!company) return
     setStatus('loading')
-    fetchFaqAnalysis(PERIOD)
+    fetchFaqAnalysis(PERIOD, company)
       .then((res) => {
         setData(res)
         setStatus('done')
@@ -25,16 +29,25 @@ export default function FaqInsightPage() {
         setError(e instanceof Error ? e.message : '분석에 실패했습니다.')
         setStatus('error')
       })
-  }, [])
+  }, [company])
 
   return (
     <div className="flex-1 space-y-5 p-5">
-      <header>
-        <h1 className="text-lg font-bold text-slate-800">AI FAQ Insight</h1>
-        <p className="text-sm text-slate-400">{PERIOD_LABEL} 상담 데이터를 AI가 분석한 결과입니다.</p>
+      <header className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-bold text-slate-800">AI FAQ Insight</h1>
+          <p className="text-sm text-slate-400">{PERIOD_LABEL} 상담 데이터를 AI가 분석한 결과입니다.</p>
+        </div>
+        <CompanySelector align="right" />
       </header>
 
-      {status === 'loading' && (
+      {!company && (
+        <div className="rounded-3xl border border-dashed border-slate-200 bg-white/60 p-10 text-center text-sm text-slate-400">
+          먼저 위에서 고객사를 선택하세요.
+        </div>
+      )}
+
+      {company && status === 'loading' && (
         <div className="rounded-3xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-400 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
           상담 데이터를 분석하고 있습니다...
         </div>
@@ -50,42 +63,51 @@ export default function FaqInsightPage() {
           </div>
 
           <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
-            <h2 className="mb-4 text-sm font-bold text-slate-700">문의 유형 분석</h2>
-            <CategoryBarChart data={data.categoryDistribution} />
+            <h2 className="mb-2 text-sm font-bold text-slate-700">자주 나온 문의 키워드</h2>
+            <p className="mb-2 text-xs text-slate-400">원이 클수록 해당 주제의 문의가 많이 발생했다는 뜻입니다.</p>
+            <KeywordBubbleChart
+              data={data.faqCandidates}
+              selectedTitle={selected?.title ?? null}
+              onSelect={(c) => setSelected(c)}
+            />
           </div>
 
           <div className="rounded-3xl border border-slate-100 bg-white p-5 shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
             <h2 className="mb-4 text-sm font-bold text-slate-700">AI FAQ 추천</h2>
-            <ul className="divide-y divide-slate-100">
-              {data.faqCandidates.map((c, i) => (
-                <li key={c.title} className="flex items-center justify-between gap-4 py-3">
-                  <div className="flex items-start gap-3">
-                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
-                      {i + 1}
-                    </span>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{c.title}</p>
-                      <p className="text-xs text-slate-400">{c.reason}</p>
+            {data.faqCandidates.length === 0 ? (
+              <p className="py-6 text-center text-sm text-slate-400">해당 기간 동안 반복된 문의가 없습니다.</p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {data.faqCandidates.map((c, i) => (
+                  <li key={c.title} className="flex items-center justify-between gap-4 py-3">
+                    <div className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700">
+                        {i + 1}
+                      </span>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{c.title}</p>
+                        <p className="text-xs text-slate-400">{c.reason}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="text-sm font-bold text-slate-700">{c.count}건</span>
-                    <button
-                      onClick={() => setSelected(c)}
-                      className="rounded-full bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-                    >
-                      FAQ 초안 생성
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span className="text-sm font-bold text-slate-700">{c.count}건</span>
+                      <button
+                        onClick={() => setSelected(c)}
+                        className="rounded-full bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                      >
+                        FAQ 초안 생성
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </>
       )}
 
       {selected && (
-        <FaqDraftModal candidate={selected} period={PERIOD} onClose={() => setSelected(null)} />
+        <FaqDraftModal candidate={selected} period={PERIOD} company={company} onClose={() => setSelected(null)} />
       )}
     </div>
   )

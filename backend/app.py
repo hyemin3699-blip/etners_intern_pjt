@@ -15,6 +15,7 @@ from flask_cors import CORS
 from routes.context_routes import bp as context_bp
 from routes.recommendation_routes import bp as recommendation_bp
 from routes.faq_routes import bp as faq_bp
+from routes.evidence_routes import bp as evidence_bp
 from services import data_store
 
 app = Flask(__name__)
@@ -23,6 +24,7 @@ CORS(app)
 app.register_blueprint(context_bp)
 app.register_blueprint(recommendation_bp)
 app.register_blueprint(faq_bp)
+app.register_blueprint(evidence_bp)
 
 
 @app.route("/api/health")

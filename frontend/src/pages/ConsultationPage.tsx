@@ -1,18 +1,28 @@
 import { useEffect, useState } from 'react'
 import { fetchEmployee, fetchInquiries } from '../api/client'
+import CompletedDocumentModal from '../components/CompletedDocumentModal'
 import ContextPanel from '../components/ContextPanel'
+import DocumentDrawer from '../components/DocumentDrawer'
+import DocumentStatusCard from '../components/DocumentStatusCard'
+import EvidencePanel from '../components/EvidencePanel'
 import InquiryList from '../components/InquiryList'
 import RecommendationPanel from '../components/RecommendationPanel'
-import type { ConversationMessage, Employee, Inquiry } from '../types'
+import { useCompany } from '../context/CompanyContext'
+import { DOCUMENT_TEMPLATES } from '../data/documentTemplates'
+import type { ConversationMessage, DocumentStatus, Employee, Inquiry } from '../types'
 
 type ChatMessage = ConversationMessage
 
 export default function ConsultationPage() {
+  const { setCompany } = useCompany()
   const [inquiries, setInquiries] = useState<Inquiry[]>([])
   const [selected, setSelected] = useState<Inquiry | null>(null)
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [draft, setDraft] = useState('')
+  const [sentDocuments, setSentDocuments] = useState<DocumentStatus[]>([])
+  const [showDocDrawer, setShowDocDrawer] = useState(false)
+  const [viewingDoc, setViewingDoc] = useState<DocumentStatus | null>(null)
 
   useEffect(() => {
     fetchInquiries().then((list) => {
@@ -27,6 +37,10 @@ export default function ConsultationPage() {
     setMessages(inquiry.conversation ?? [{ from: 'customer', text: inquiry.question }])
     setDraft('')
     setEmployee(null)
+    setCompany(inquiry.company)
+    setSentDocuments(inquiry.documentStatus ? [inquiry.documentStatus] : [])
+    setShowDocDrawer(false)
+    setViewingDoc(null)
     fetchEmployee(inquiry.employeeId).then(setEmployee)
   }
 
@@ -35,6 +49,14 @@ export default function ConsultationPage() {
     setMessages((prev) => [...prev, { from: 'agent', text: draft.trim() }])
     setDraft('')
   }
+
+  function handleSendDocument(values: Record<string, string>, signature: string | null) {
+    if (!template) return
+    setSentDocuments((prev) => [...prev, { name: template.title, state: 'requested', values, signature }])
+    setShowDocDrawer(false)
+  }
+
+  const template = selected?.documentType ? DOCUMENT_TEMPLATES[selected.documentType] : null
 
   return (
     <div className="grid flex-1 grid-cols-1 gap-5 p-5 lg:grid-cols-[260px_1fr_1.1fr]">
@@ -82,22 +104,36 @@ export default function ConsultationPage() {
                   </div>
                 </div>
               ))}
+
+              {sentDocuments.map((doc, i) => (
+                <DocumentStatusCard key={i} status={doc} onClick={() => setViewingDoc(doc)} />
+              ))}
             </div>
 
-            <div className="flex gap-2 border-t border-slate-100 p-4">
-              <input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendReply()}
-                placeholder="고객에게 보낼 답변을 입력하세요"
-                className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
-              />
-              <button
-                onClick={sendReply}
-                className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
-              >
-                전송
-              </button>
+            <div className="border-t border-slate-100 p-4">
+              {template && (
+                <button
+                  onClick={() => setShowDocDrawer(true)}
+                  className="mb-2 rounded-full border border-dashed border-brand-300 px-3.5 py-1.5 text-xs font-semibold text-brand-600 transition hover:bg-brand-50"
+                >
+                  ＋ 간편서류
+                </button>
+              )}
+              <div className="flex gap-2">
+                <input
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendReply()}
+                  placeholder="고객에게 보낼 답변을 입력하세요"
+                  className="flex-1 rounded-full border border-slate-200 px-4 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+                />
+                <button
+                  onClick={sendReply}
+                  className="rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+                >
+                  전송
+                </button>
+              </div>
             </div>
           </section>
 
@@ -105,8 +141,28 @@ export default function ConsultationPage() {
           <div className="flex flex-col gap-5" key={selected.id}>
             <ContextPanel employeeId={selected.employeeId} question={selected.question} />
             <RecommendationPanel employeeId={selected.employeeId} question={selected.question} />
+            <EvidencePanel company={selected.company} question={selected.question} />
           </div>
         </>
+      )}
+
+      {showDocDrawer && template && (
+        <DocumentDrawer
+          template={template}
+          employee={employee}
+          onClose={() => setShowDocDrawer(false)}
+          onSend={handleSendDocument}
+        />
+      )}
+
+      {viewingDoc && template && (
+        <CompletedDocumentModal
+          template={template}
+          employee={employee}
+          values={viewingDoc.values ?? {}}
+          signature={viewingDoc.signature}
+          onClose={() => setViewingDoc(null)}
+        />
       )}
     </div>
   )

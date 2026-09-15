@@ -1,10 +1,6 @@
 import json
-import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
-
-import psycopg2
-import psycopg2.extras
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -52,37 +48,56 @@ def get_consultations_by_employee(employee_id, exclude_ids=None):
     return sorted(rows, key=lambda c: c["date"], reverse=True)
 
 
-def _db_connect():
-    return psycopg2.connect(os.environ["DATABASE_URL"], cursor_factory=psycopg2.extras.RealDictCursor)
+# FAQ 등록 목록도 근거자료와 동일하게 Mock JSON 구조로 관리한다 (DATABASE_URL 없이 동작).
+def _registered_faqs_file_path():
+    return DATA_DIR / "registered_faqs.json"
 
 
-def get_registered_faqs():
-    conn = _db_connect()
-    try:
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM registered_faqs ORDER BY id DESC")
-            return cur.fetchall()
-    finally:
-        conn.close()
+def get_registered_faqs_raw():
+    path = _registered_faqs_file_path()
+    if not path.exists():
+        return []
+    return load_json("registered_faqs.json")
+
+
+def _save_registered_faqs(rows):
+    with open(_registered_faqs_file_path(), "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, indent=2)
+
+
+def get_registered_faqs(scope=None, company=None):
+    rows = get_registered_faqs_raw()
+    if scope == "common":
+        rows = [r for r in rows if not r.get("company")]
+    elif scope == "company":
+        rows = [r for r in rows if r.get("company") == company]
+    return sorted(rows, key=lambda r: r["createdAt"], reverse=True)
 
 
 def append_registered_faq(entry: dict) -> dict:
-    conn = _db_connect()
-    try:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO registered_faqs (category, topic, question, answer)
-                VALUES (%(category)s, %(topic)s, %(question)s, %(answer)s)
-                RETURNING *
-                """,
-                entry,
-            )
-            saved = cur.fetchone()
-        conn.commit()
-        return saved
-    finally:
-        conn.close()
+    rows = get_registered_faqs_raw()
+    new_id = max((r["id"] for r in rows), default=0) + 1
+    saved = {
+        "id": new_id,
+        "company": entry.get("company"),
+        "category": entry.get("category", ""),
+        "topic": entry.get("topic", ""),
+        "question": entry["question"],
+        "answer": entry["answer"],
+        "createdAt": datetime.now().isoformat(),
+    }
+    rows.append(saved)
+    _save_registered_faqs(rows)
+    return saved
+
+
+def delete_registered_faq(faq_id):
+    rows = get_registered_faqs_raw()
+    remaining = [r for r in rows if r["id"] != faq_id]
+    if len(remaining) == len(rows):
+        return False
+    _save_registered_faqs(remaining)
+    return True
 
 
 def parse_period_days(period: str) -> int:
@@ -90,13 +105,123 @@ def parse_period_days(period: str) -> int:
     return int(digits) if digits else 30
 
 
-def get_consultations_within(period: str):
+def get_consultations_within(period: str, company=None):
     days = parse_period_days(period)
-    cutoff = date.today() - timedelta(days=days)
     # Mock 데이터의 기준일(2026-09-15)에 맞춰 최신 데이터가 항상 포함되도록 데이터 내 최댓날짜를 기준으로 삼는다.
     all_rows = get_consultations()
     if not all_rows:
         return []
     latest = max(date.fromisoformat(c["date"]) for c in all_rows)
     cutoff = latest - timedelta(days=days)
-    return [c for c in all_rows if date.fromisoformat(c["date"]) >= cutoff]
+    rows = [c for c in all_rows if date.fromisoformat(c["date"]) >= cutoff]
+    if company:
+        employees_by_id = {e["id"]: e for e in get_employees()}
+        rows = [c for c in rows if employees_by_id.get(c["employeeId"], {}).get("company") == company]
+    return rows
+
+
+# 근거자료는 실제 DB 없이 Mock JSON 구조를 그대로 유지한다 (registered_faqs와 달리
+# Postgres를 쓰지 않는 이유: 요청서가 "실제 DB는 구축하지 않는다"를 명시하고 있고,
+# 로컬 실행 시 DATABASE_URL 없이도 시연/테스트가 가능해야 하기 때문).
+EVIDENCE_CATEGORIES = ["급여", "복리후생", "연말정산", "기타"]
+
+
+def get_companies():
+    return sorted({e["company"] for e in get_employees()})
+
+
+def _evidence_file_path():
+    return DATA_DIR / "evidence_documents.json"
+
+
+def get_evidence_documents_raw():
+    path = _evidence_file_path()
+    if not path.exists():
+        return []
+    return load_json("evidence_documents.json")
+
+
+def _save_evidence_documents(docs):
+    with open(_evidence_file_path(), "w", encoding="utf-8") as f:
+        json.dump(docs, f, ensure_ascii=False, indent=2)
+
+
+def _strip_sections(doc):
+    return {
+        "id": doc["id"],
+        "scope": doc.get("scope", "company"),
+        "company": doc.get("company"),
+        "category": doc["category"],
+        "name": doc["name"],
+        "description": doc.get("description", ""),
+        "fileName": doc.get("fileName", doc["name"]),
+        "uploadedAt": doc["uploadedAt"],
+        "sectionCount": len(doc.get("sections", [])),
+    }
+
+
+def get_evidence_documents(scope=None, company=None, category=None):
+    docs = get_evidence_documents_raw()
+    if scope:
+        docs = [d for d in docs if d.get("scope", "company") == scope]
+    if company:
+        docs = [d for d in docs if d.get("company") == company]
+    if category:
+        docs = [d for d in docs if d["category"] == category]
+    docs = sorted(docs, key=lambda d: d["uploadedAt"], reverse=True)
+    return [_strip_sections(d) for d in docs]
+
+
+def get_evidence_document(document_id):
+    for d in get_evidence_documents_raw():
+        if d["id"] == document_id:
+            return d
+    return None
+
+
+def add_evidence_document(scope, category, name, company=None, description="", file_name=None):
+    docs = get_evidence_documents_raw()
+    new_id = max((d["id"] for d in docs), default=0) + 1
+    entry = {
+        "id": new_id,
+        "scope": scope,
+        "company": company if scope == "company" else None,
+        "category": category,
+        "name": name,
+        "description": description or "",
+        "fileName": file_name or name,
+        "uploadedAt": date.today().isoformat(),
+        "sections": [],
+    }
+    docs.append(entry)
+    _save_evidence_documents(docs)
+    return _strip_sections(entry)
+
+
+def delete_evidence_document(document_id):
+    docs = get_evidence_documents_raw()
+    remaining = [d for d in docs if d["id"] != document_id]
+    if len(remaining) == len(docs):
+        return False
+    _save_evidence_documents(remaining)
+    return True
+
+
+def get_evidence_sections_for_company(company):
+    # 회사 전용 근거자료뿐 아니라, 회사와 무관한 공통 자료(응대 매뉴얼 등)도
+    # AI 근거자료 검색 대상에 함께 포함시킨다.
+    sections = []
+    for d in get_evidence_documents_raw():
+        is_common = d.get("scope", "company") == "common"
+        if not is_common and d.get("company") != company:
+            continue
+        for s in d.get("sections", []):
+            sections.append({
+                "documentId": d["id"],
+                "documentName": d["name"],
+                "category": d["category"],
+                "page": s["page"],
+                "section": s["section"],
+                "content": s["content"],
+            })
+    return sections
