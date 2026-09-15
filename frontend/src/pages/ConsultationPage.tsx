@@ -59,7 +59,7 @@ export default function ConsultationPage() {
   const template = selected?.documentType ? DOCUMENT_TEMPLATES[selected.documentType] : null
 
   return (
-    <div className="grid flex-1 grid-cols-1 gap-5 p-5 lg:grid-cols-[260px_1fr_1.1fr]">
+    <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 p-5 lg:grid-cols-[260px_1fr_1.1fr]">
       <InquiryList
         inquiries={inquiries}
         selectedId={selected?.id ?? null}
@@ -73,7 +73,7 @@ export default function ConsultationPage() {
       ) : (
         <>
           {/* 상담 내용 */}
-          <section className="flex flex-col rounded-3xl border border-slate-100 bg-white shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
+          <section className="flex min-h-0 flex-col rounded-3xl border border-slate-100 bg-white shadow-[0_2px_16px_-4px_rgba(15,23,42,0.06)]">
             <header className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
               <div>
                 <h2 className="text-base font-bold text-slate-800">{selected.name}</h2>
@@ -87,7 +87,7 @@ export default function ConsultationPage() {
               </span>
             </header>
 
-            <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
               {messages.map((m, i) => (
                 <div key={i} className={`flex ${m.from === 'agent' ? 'justify-end' : 'justify-start'}`}>
                   <div
@@ -138,7 +138,7 @@ export default function ConsultationPage() {
           </section>
 
           {/* AI 업무지원 — 상담을 바꾸면 이전 결과가 남지 않도록 key로 새로 마운트한다 */}
-          <div className="flex flex-col gap-5" key={selected.id}>
+          <div className="flex min-h-0 flex-col gap-5 overflow-y-auto" key={selected.id}>
             <ContextPanel employeeId={selected.employeeId} question={selected.question} />
             <RecommendationPanel employeeId={selected.employeeId} question={selected.question} />
             <EvidencePanel company={selected.company} question={selected.question} />
